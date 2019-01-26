@@ -16,7 +16,6 @@ public class GameRoom {
   private Map<Player, List<Player>> matchUps = new HashMap<>();
   private List<Scene> remainingScenes = new ArrayList<>();
 
-  private Scene currentScene;
-  private Map<Player, Snap> images = new HashMap<>();
-  private List<Player> awaitingJudges = new ArrayList<>();
+  private Map<Integer, GameRound> rounds = new HashMap<>();
+  private GameRound currentRound;
 }

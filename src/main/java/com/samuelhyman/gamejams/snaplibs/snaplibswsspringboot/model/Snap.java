@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Snap {
   private String data;
-  private Integer slot;
+  private String slot;
+  private Integer votes;
 }

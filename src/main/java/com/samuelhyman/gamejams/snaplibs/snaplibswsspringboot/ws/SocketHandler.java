@@ -3,7 +3,6 @@ package com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.ws;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.SceneDictionary;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.GameRoom;
+import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.GameRound;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.Player;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.Scene;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.Snap;
@@ -37,58 +37,16 @@ public class SocketHandler extends TextWebSocketHandler {
   @Autowired
   private SceneDictionary sceneDictionary;
 
+  @Autowired
+  private Gson gson;
+
   private Random random = new Random();
+  private Map<WebSocketSession, Player> players = new HashMap<>();
+  private Map<Player, GameRoom> playerToRoom = new HashMap<>();
+  private Map<Integer, GameRoom> rooms = new HashMap<>();
 
-  Map<WebSocketSession, Player> players = new HashMap<>();
-  Map<Player, GameRoom> playerToRoom = new HashMap<>();
-  Map<Integer, GameRoom> rooms = new HashMap<>();
-  Gson gson = new Gson();
-  AtomicInteger roomIdSequence = new AtomicInteger(1000);
+  private AtomicInteger roomIdSequence = new AtomicInteger(1000);
 
-  private void createNewRoom(WebSocketSession session, Map<String, String> data) throws Exception {
-    GameRoom room = new GameRoom();
-    room.setId(roomIdSequence.getAndIncrement());
-    room.setRemainingScenes(sceneDictionary.getScenes());
-    Player host = new Player();
-    host.setName(data.get("name"));
-    host.setSocket(session);
-
-    room.setHost(host);
-    room.getPlayers().add(host);
-
-    rooms.put(room.getId(), room);
-    playerToRoom.put(host, room);
-    players.put(session, host);
-
-    Map<String, String> response = new HashMap<>();
-    response.put("state", "lobby");
-    response.put("room", room.getId().toString());
-    host.getSocket().sendMessage(new TextMessage(gson.toJson(response)));
-  }
-
-  private void addPlayerToRoom(WebSocketSession session, Map<String, String> data) throws IOException {
-    Player newPlayer = new Player();
-    newPlayer.setSocket(session);
-    newPlayer.setName(data.get("name"));
-
-    GameRoom room = rooms.get(Integer.valueOf(data.get("room")));
-    room.getPlayers().add(newPlayer);
-    room.getMatchUps().put(newPlayer, new ArrayList<>());
-    players.put(session, newPlayer);
-
-    playerToRoom.put(newPlayer, room);
-
-    Map<String, String> response = new HashMap<>();
-    response.put("state", "lobby");
-
-    newPlayer.sendMessage(new TextMessage(gson.toJson(response)));
-
-    Map<String, String> hostNotify = new HashMap<>();
-    response.put("action", "playerjoin");
-    response.put("name", newPlayer.getName());
-
-    room.getHost().sendMessage(new TextMessage(gson.toJson(hostNotify)));
-  }
 
   @Override
   public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -124,26 +82,89 @@ public class SocketHandler extends TextWebSocketHandler {
 
   }
 
+  private void createNewRoom(WebSocketSession session, Map<String, String> data) throws Exception {
+    GameRoom room = new GameRoom();
+    room.setId(roomIdSequence.getAndIncrement());
+    room.setRemainingScenes(sceneDictionary.getScenes());
+    Player host = new Player();
+    host.setName(data.get("name"));
+    host.setSocket(session);
+
+    room.setHost(host);
+    room.getPlayers().add(host);
+
+    rooms.put(room.getId(), room);
+    playerToRoom.put(host, room);
+    players.put(session, host);
+
+    Map<String, String> response = new HashMap<>();
+    response.put("state", "lobby");
+    response.put("room", room.getId().toString());
+    host.sendMessage(new TextMessage(gson.toJson(response)));
+  }
+
+  private void addPlayerToRoom(WebSocketSession session, Map<String, String> data) throws IOException {
+    GameRoom room = rooms.get(Integer.valueOf(data.get("room")));
+
+    String name = data.get("name");
+
+    for (Player p : room.getPlayers()) {
+      if (name.equals(p.getName())) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "player with name already exists");
+        session.sendMessage(new TextMessage(gson.toJson(response)));
+        return;
+      }
+    }
+
+    Player newPlayer = new Player();
+    newPlayer.setSocket(session);
+    newPlayer.setName(name);
+
+    room.getPlayers().add(newPlayer);
+    room.getMatchUps().put(newPlayer, new ArrayList<>());
+    players.put(session, newPlayer);
+
+    playerToRoom.put(newPlayer, room);
+
+    Map<String, String> response = new HashMap<>();
+    response.put("state", "lobby");
+
+    newPlayer.sendMessage(new TextMessage(gson.toJson(response)));
+
+    Map<String, String> hostNotify = new HashMap<>();
+    response.put("action", "playerjoin");
+    response.put("name", newPlayer.getName());
+
+    room.getHost().sendMessage(new TextMessage(gson.toJson(hostNotify)));
+  }
+
   private void handleJudging(WebSocketSession session, Map<String,String> data) throws IOException {
     Player player = players.get(session);
     GameRoom room = playerToRoom.get(player);
 
-    room.getAwaitingJudges().remove(player);
+    String vote = data.get("vote");
 
+    if ("1".equals(vote)) {
+      room.getCurrentRound().getSnap1().setVotes(room.getCurrentRound().getSnap1().getVotes() + 1);
+    }
 
+    if ("2".equals(vote)) {
+      room.getCurrentRound().getSnap2().setVotes(room.getCurrentRound().getSnap2().getVotes() + 1);
+    }
 
-    if(room.getAwaitingJudges().size() <= 0) {
-      // done with judging phase
-
+    if (room.getCurrentRound().getSnap1().getVotes() + room.getCurrentRound().getSnap2().getVotes() == room.getCurrentRound().getJudges().size()) {
       Map<String, String> response = new HashMap<>();
       response.put("action", "results");
-      // TODO: add scoring
+      response.put("scene", room.getCurrentRound().getScene().getName());
+      response.put("1", String.valueOf(room.getCurrentRound().getSnap1().getVotes()));
+      response.put("2", String.valueOf(room.getCurrentRound().getSnap1().getVotes()));
 
       for(Player p : room.getPlayers()) {
         p.sendMessage(new TextMessage(gson.toJson(response)));
       }
 
-      room.setRemainingRounds(room.getRemainingRounds() - 1);
+      scheduleRoundLogic(room);
     }
 
   }
@@ -153,8 +174,15 @@ public class SocketHandler extends TextWebSocketHandler {
     GameRoom room = playerToRoom.get(player);
 
     // Get snap and add to room snaps
-    Snap snap = new Snap(data.get("image"), Integer.valueOf(data.get("slot")));
-    room.getImages().put(player, snap);
+    Snap snap = new Snap(data.get("image"), data.get("slot"), 0);
+
+    if ("1".equals(snap.getSlot())) {
+      room.getCurrentRound().setSnap1(snap);
+    }
+
+    if ("2".equals(snap.getSlot())) {
+      room.getCurrentRound().setSnap2(snap);
+    }
 
     // Add to player's image list
     player.getImages().add(snap);
@@ -166,19 +194,15 @@ public class SocketHandler extends TextWebSocketHandler {
     player.sendMessage(new TextMessage(gson.toJson(response)));
 
     // If we have two uploads, run judge logic
-    if (room.getImages().size() >= 2) {
+    if (room.getCurrentRound().getSnap1() != null && room.getCurrentRound().getSnap2() != null) {
       // Grab all players, remove image uploaders to get the list of judges
-      List<Player> judges = new ArrayList<>(room.getPlayers());
-      judges.removeAll(room.getImages().keySet());
+      List<Player> judges = room.getCurrentRound().getJudges();
 
       Map<String, String> judgePacket = new HashMap<>();
       judgePacket.put("state", "judge");
-      judgePacket.put("scene", room.getCurrentScene().getName());
-
-      room.getImages().forEach((key, value) -> judgePacket.put(value.getSlot().toString(), value.getData()));
-
-      room.getAwaitingJudges().clear();
-      room.getAwaitingJudges().addAll(judges);
+      judgePacket.put("scene", room.getCurrentRound().getScene().getName());
+      judgePacket.put("1", room.getCurrentRound().getSnap1().getData());
+      judgePacket.put("2", room.getCurrentRound().getSnap2().getData());
 
       for(Player judge : judges) {
         judge.sendMessage(new TextMessage(gson.toJson(judgePacket)));
@@ -211,7 +235,7 @@ public class SocketHandler extends TextWebSocketHandler {
       Map<String, String> response = new HashMap<>();
       response.put("state", "waiting");
 
-      p.getSocket().sendMessage(new TextMessage(gson.toJson(response)));
+      p.sendMessage(new TextMessage(gson.toJson(response)));
     }
 
     scheduleRoundLogic(room);
@@ -229,6 +253,11 @@ public class SocketHandler extends TextWebSocketHandler {
   }
 
   private void runRoundLogic(GameRoom room) throws IOException {
+
+    room.getRounds().put(room.getRounds().size() + 1, room.getCurrentRound());
+
+    GameRound round = new GameRound();
+    room.setCurrentRound(round);
 
     // Handle end game
     if (room.getRemainingRounds() <= 0) {
@@ -252,9 +281,9 @@ public class SocketHandler extends TextWebSocketHandler {
 
     // Pick the scene
     List<Scene> remainingScenes = room.getRemainingScenes();
-
     Scene scene = remainingScenes.remove(random.nextInt(remainingScenes.size()));
-    room.setCurrentScene(scene);
+    round.setScene(scene);
+    //room.setCurrentScene(scene);
 
     // Pick the players, first pick a random player, and then pick a random second player that is not the first player
     List<Player> players = room.getPlayers();
@@ -265,31 +294,32 @@ public class SocketHandler extends TextWebSocketHandler {
       slot2 = random.nextInt(players.size());
     }
 
-    Player a = players.get(slot1);
-    Player b = players.get(slot2);
-
-    room.getImages().clear();
+    round.setPlayer1(players.get(slot1));
+    round.setPlayer2(players.get(slot2));
 
     Map<String, String> snapA = new HashMap<>();
     snapA.put("state", "snap");
-    snapA.put("prompt", room.getCurrentScene().getPromptA());
-    snapA.put("scene", room.getCurrentScene().getName());
+    snapA.put("prompt", round.getScene().getPromptA());
+    snapA.put("scene", round.getScene().getName());
     snapA.put("slot", "1");
 
     Map<String, String> snapB = new HashMap<>();
     snapB.put("state", "snap");
-    snapB.put("prompt", room.getCurrentScene().getPromptB());
-    snapB.put("scene", room.getCurrentScene().getName());
+    snapB.put("prompt", round.getScene().getPromptB());
+    snapB.put("scene", round.getScene().getName());
     snapB.put("slot", "2");
 
-    a.getSocket().sendMessage(new TextMessage(gson.toJson(snapA)));
-    b.getSocket().sendMessage(new TextMessage(gson.toJson(snapB)));
+    round.getPlayer1().sendMessage(new TextMessage(gson.toJson(snapA)));
+    round.getPlayer2().sendMessage(new TextMessage(gson.toJson(snapB)));
 
     ArrayList<Player> remainingPlayers = new ArrayList<>(room.getPlayers());
-    remainingPlayers.remove(a);
-    remainingPlayers.remove(b);
+    remainingPlayers.remove(round.getPlayer1());
+    remainingPlayers.remove(round.getPlayer2());
 
     Map<String, String> response = new HashMap<>();
+    response.put("action", "waiting");
+
+    round.setJudges(remainingPlayers);
 
     for (Player p : remainingPlayers) {
       p.sendMessage(new TextMessage(gson.toJson(response)));
