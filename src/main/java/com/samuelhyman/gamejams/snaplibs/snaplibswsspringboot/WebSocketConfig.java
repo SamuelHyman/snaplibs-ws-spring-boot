@@ -12,6 +12,8 @@ import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.ws.SocketHandler;
 public class WebSocketConfig implements WebSocketConfigurer {
 
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry.addHandler(new SocketHandler(), "/game");
+    registry
+        .addHandler(new SocketHandler(), "/game")
+        .setAllowedOrigins("*");
   }
 }

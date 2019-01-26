@@ -13,9 +13,9 @@ public class Application {
 		SpringApplication.run(Application.class, args);
 	}
 
-  @Bean
-  public Gson createGson() {
-    return new Gson();
-  }
+//  @Bean
+//  public Gson createGson() {
+//    return new Gson();
+//  }
 
 }

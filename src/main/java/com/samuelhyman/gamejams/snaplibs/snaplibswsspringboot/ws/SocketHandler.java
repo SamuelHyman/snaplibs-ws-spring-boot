@@ -7,7 +7,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +37,7 @@ public class SocketHandler extends TextWebSocketHandler {
   Map<Player, GameRoom> playerToRoom = new HashMap<>();
   Map<UUID, GameRoom> rooms = new HashMap<>();
 
-  @Autowired
-  Gson gson;
+  Gson gson = new Gson();
 
   private void createNewRoom(WebSocketSession session, Map<String, String> data) throws IOException {
     GameRoom room = new GameRoom();
@@ -100,8 +101,19 @@ public class SocketHandler extends TextWebSocketHandler {
     session.sendMessage(new TextMessage(gson.toJson(playerNames)));
   }
 
+
   @Override
   public void afterConnectionEstablished(WebSocketSession session) {
     log.info("Connected: {}", session);
+
+    Map<String, String> response = new HashMap<>();
+    response.put("connected", "ok");
+
+    try {
+      session.sendMessage(new TextMessage(gson.toJson(response)));
+    } catch(Exception ex) {
+      log.error("Caught exception: ", ex);
+    }
   }
+
 }
