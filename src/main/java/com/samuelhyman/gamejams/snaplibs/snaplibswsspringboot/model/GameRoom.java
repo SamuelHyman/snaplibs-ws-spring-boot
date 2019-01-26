@@ -1,5 +1,6 @@
 package com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,4 +17,6 @@ public class GameRoom {
   private Map<Player, List<Player>> matchUps;
 
   private Map<Player, Snap> images = new HashMap();
+  private List<Scene> remainingScenes = new ArrayList<>();
+  private Scene currentScene;
 }

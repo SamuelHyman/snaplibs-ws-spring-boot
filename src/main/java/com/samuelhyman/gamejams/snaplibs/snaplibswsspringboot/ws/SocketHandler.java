@@ -7,18 +7,23 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.SceneDictionary;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.GameRoom;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.Player;
+import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.Scene;
 import com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model.Snap;
 
 import lombok.AllArgsConstructor;
@@ -31,6 +36,9 @@ public class SocketHandler extends TextWebSocketHandler {
 
   private static final Type MAP_STRING_STRING_TYPE = new TypeToken<Map<String, String>>(){}.getType();
 
+  @Autowired
+  private SceneDictionary sceneDictionary;
+
   Map<WebSocketSession, Player> players = new HashMap<>();
   Map<Player, GameRoom> playerToRoom = new HashMap<>();
   Map<Integer, GameRoom> rooms = new HashMap<>();
@@ -40,7 +48,7 @@ public class SocketHandler extends TextWebSocketHandler {
   private void createNewRoom(WebSocketSession session, Map<String, String> data) throws Exception {
     GameRoom room = new GameRoom();
     room.setId(roomIdSequence.getAndIncrement());
-
+    room.setRemainingScenes(sceneDictionary.getScenes());
     Player host = new Player();
     host.setName(data.get("name"));
     host.setSocket(session);
@@ -76,6 +84,12 @@ public class SocketHandler extends TextWebSocketHandler {
     response.put("state", "lobby");
 
     newPlayer.sendMessage(new TextMessage(gson.toJson(response)));
+
+    Map<String, String> hostNotify = new HashMap<>();
+    response.put("action", "playerjoin");
+    response.put("name", newPlayer.getName());
+
+    room.getHost().sendMessage(new TextMessage(gson.toJson(hostNotify)));
   }
 
   @Override
@@ -145,6 +159,13 @@ public class SocketHandler extends TextWebSocketHandler {
     Player host = players.get(session);
     GameRoom room = playerToRoom.get(host);
 
+    if (room.getPlayers().size() >= 2) {
+      Map<String, String> response = new HashMap<>();
+      response.put("error", "not enough players");
+      host.sendMessage(new TextMessage(gson.toJson(response)));
+      return;
+    }
+
     room.setRemainingRounds(room.getPlayers().size() * 2);
 
     for(Player p : room.getPlayers()) {
@@ -175,28 +196,40 @@ public class SocketHandler extends TextWebSocketHandler {
     private Integer count;
   }
 
+  private Random random = new Random();
+
   private void runRoundLogic(GameRoom room) throws IOException {
-    Map<Player, List<Player>> matchups = room.getMatchUps();
 
-    List<Pair> plays = matchups.entrySet().stream().map(e -> new Pair(e.getKey(), e.getValue().size())).sorted(Comparator.comparingInt(a -> a.count)).collect(Collectors.toList());
+    // Pick the scene
+    List<Scene> remainingScenes = room.getRemainingScenes();
 
-    Player a = null;
-    Player b = null;
+    Scene scene = remainingScenes.remove(random.nextInt(remainingScenes.size()));
+    room.setCurrentScene(scene);
 
-    // TODO: Choose participants
+    // Pick the players, first pick a random player, and then pick a random second player that is not the first player
+    List<Player> players = room.getPlayers();
+    int slot1 = random.nextInt(players.size());
+    int slot2 = slot1;
+
+    while(slot1 == slot2) {
+      slot2 = random.nextInt(players.size());
+    }
+
+    Player a = players.get(slot1);
+    Player b = players.get(slot2);
 
     room.getImages().clear();
 
     Map<String, String> snapA = new HashMap<>();
     snapA.put("state", "snap");
-    snapA.put("prompt", "");
-    snapA.put("scene", "");
+    snapA.put("prompt", room.getCurrentScene().getPromptA());
+    snapA.put("scene", room.getCurrentScene().getName());
     snapA.put("slot", "1");
 
     Map<String, String> snapB = new HashMap<>();
     snapB.put("state", "snap");
-    snapB.put("prompt", "");
-    snapB.put("scene", "");
+    snapB.put("prompt", room.getCurrentScene().getPromptB());
+    snapB.put("scene", room.getCurrentScene().getName());
     snapB.put("slot", "2");
 
     a.getSocket().sendMessage(new TextMessage(gson.toJson(snapA)));
@@ -228,4 +261,29 @@ public class SocketHandler extends TextWebSocketHandler {
     }
   }
 
+  @Override
+  public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+    log.info("Connected: {}", session);
+
+//    Player player = players.get(session);
+//
+//    if (null != player) {
+//      GameRoom map = playerToRoom.get(player);
+//
+//      if(null != map) {
+//        for(Player p : new ArrayList<>(map.getPlayers())) {
+//          Map<String, String> kill = new HashMap<>();
+//          kill.put("action", "kill");
+//          playerToRoom.remove(player);
+//          player.sendMessage(new TextMessage(gson.toJson(kill)));
+//          players.remove(p.getSocket());
+//        }
+//        rooms.remove(map.getId());
+//      }
+//    }
+  }
+
+  public void handleDeadGame(GameRoom room) {
+
+  }
 }
