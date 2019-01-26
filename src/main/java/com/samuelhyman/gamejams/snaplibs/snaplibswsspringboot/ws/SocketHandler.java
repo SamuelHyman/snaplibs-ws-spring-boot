@@ -75,6 +75,8 @@ public class SocketHandler extends TextWebSocketHandler {
 
   @Override
   public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    log.info("received: {}", message.getPayload());
+
     Map<String, String> data = new Gson().fromJson(message.getPayload(), MAP_STRING_STRING_TYPE);
 
     final String action = data.get("action");
