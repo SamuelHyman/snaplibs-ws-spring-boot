@@ -35,7 +35,7 @@ public class SocketHandler extends TextWebSocketHandler {
   Map<Player, GameRoom> playerToRoom = new HashMap<>();
   Map<Integer, GameRoom> rooms = new HashMap<>();
   Gson gson = new Gson();
-  AtomicInteger roomIdSequence = new AtomicInteger();
+  AtomicInteger roomIdSequence = new AtomicInteger(1000);
 
   private void createNewRoom(WebSocketSession session, Map<String, String> data) throws Exception {
     GameRoom room = new GameRoom();
@@ -60,7 +60,7 @@ public class SocketHandler extends TextWebSocketHandler {
     host.getSocket().sendMessage(new TextMessage(gson.toJson(response)));
   }
 
-  private void addPlayerToRoom(WebSocketSession session, Map<String, String> data) {
+  private void addPlayerToRoom(WebSocketSession session, Map<String, String> data) throws IOException {
     Player newPlayer = new Player();
     newPlayer.setSocket(session);
     newPlayer.setName(data.get("name"));
@@ -71,6 +71,11 @@ public class SocketHandler extends TextWebSocketHandler {
     players.put(session, newPlayer);
 
     playerToRoom.put(newPlayer, room);
+
+    Map<String, String> response = new HashMap<>();
+    response.put("state", "waiting");
+
+    newPlayer.sendMessage(new TextMessage(gson.toJson(response)));
   }
 
   @Override
