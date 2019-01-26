@@ -1,3 +1,9 @@
+                Start App
+                /        \
+              Host      Join
+               |            \
+          Create Room     Join Room
+
 HostCreate>
 <HostQR
 HostPlayers>
