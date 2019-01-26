@@ -1,0 +1,25 @@
+HostCreate>
+<HostQR
+HostPlayers>
+<HostPlayerList
+HostStart>
+
+HostQuit>
+<QuitAll
+
+PlayerJoin> (player name, room id)
+
+WAITING:
+<Waiting
+<PlayerSnap (2 players)
+PlayerSnapUpload> (2 players, image data)
+<Judge (n-2 players, scene_id, image data)
+PlayerJudgeVote> (n-2 players, player_id)
+<PlayerScoreScreen (n players, scene_id, image data, score data)
+IF ROUNDS > (n*2) SKIP NEXT
+GO TO WAITING
+
+-- You are now in end-game
+<PlayerFinalScoreScreen (n players, image data, score data, ruhost?)
+HostStart>|HostQuit>
+IF HOST START GO TO WAITING
