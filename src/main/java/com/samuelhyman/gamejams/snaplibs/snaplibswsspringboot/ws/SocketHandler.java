@@ -47,7 +47,6 @@ public class SocketHandler extends TextWebSocketHandler {
 
   private AtomicInteger roomIdSequence = new AtomicInteger(1000);
 
-
   @Override
   public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
     log.info("received: {}", message.getPayload());
@@ -109,7 +108,7 @@ public class SocketHandler extends TextWebSocketHandler {
     String name = data.get("name");
 
     for (Player p : room.getPlayers()) {
-      if (name.equals(p.getName())) {
+      if (name.equalsIgnoreCase(p.getName())) {
         Map<String, String> response = new HashMap<>();
         response.put("error", "player with name already exists");
         session.sendMessage(new TextMessage(gson.toJson(response)));
@@ -132,11 +131,15 @@ public class SocketHandler extends TextWebSocketHandler {
 
     newPlayer.sendMessage(new TextMessage(gson.toJson(response)));
 
-    Map<String, String> hostNotify = new HashMap<>();
-    response.put("action", "playerjoin");
-    response.put("name", newPlayer.getName());
+    Map<String, Object> joinNotify = new HashMap<>();
+    response.put("state", "playerjoin");
 
-    room.getHost().sendMessage(new TextMessage(gson.toJson(hostNotify)));
+    List<String> players = room.getPlayers().stream().map(Player::getName).collect(Collectors.toList());
+    joinNotify.put("players", players);
+
+    for(Player p : room.getPlayers()) {
+      p.sendMessage(new TextMessage(gson.toJson(joinNotify)));
+    }
   }
 
   private void handleJudging(WebSocketSession session, Map<String,String> data) throws IOException {
@@ -155,7 +158,7 @@ public class SocketHandler extends TextWebSocketHandler {
 
     if (room.getCurrentRound().getSnap1().getVotes() + room.getCurrentRound().getSnap2().getVotes() == room.getCurrentRound().getJudges().size()) {
       Map<String, String> response = new HashMap<>();
-      response.put("action", "results");
+      response.put("state", "results");
       response.put("scene", room.getCurrentRound().getScene().getName());
       response.put("1", String.valueOf(room.getCurrentRound().getSnap1().getVotes()));
       response.put("2", String.valueOf(room.getCurrentRound().getSnap1().getVotes()));
@@ -207,6 +210,14 @@ public class SocketHandler extends TextWebSocketHandler {
       for(Player judge : judges) {
         judge.sendMessage(new TextMessage(gson.toJson(judgePacket)));
       }
+
+      Map<String, String> waitingPacket = new HashMap<>();
+      waitingPacket.put("state", "waiting");
+      waitingPacket.put("message", "waiting on judges");
+
+      room.getCurrentRound().getPlayer1().sendMessage(new TextMessage(gson.toJson(waitingPacket)));
+      room.getCurrentRound().getPlayer2().sendMessage(new TextMessage(gson.toJson(waitingPacket)));
+
     }
   }
 
@@ -222,7 +233,7 @@ public class SocketHandler extends TextWebSocketHandler {
     Player host = players.get(session);
     GameRoom room = playerToRoom.get(host);
 
-    if (room.getPlayers().size() >= 2) {
+    if (room.getPlayers().size() <= 2) {
       Map<String, String> response = new HashMap<>();
       response.put("error", "not enough players");
       host.sendMessage(new TextMessage(gson.toJson(response)));
@@ -233,7 +244,7 @@ public class SocketHandler extends TextWebSocketHandler {
 
     for(Player p : room.getPlayers()) {
       Map<String, String> response = new HashMap<>();
-      response.put("state", "waiting");
+      response.put("state", "wait");
 
       p.sendMessage(new TextMessage(gson.toJson(response)));
     }
@@ -269,7 +280,7 @@ public class SocketHandler extends TextWebSocketHandler {
 
       // Game finished
       Map<String, Object> response = new HashMap<>();
-      response.put("action", "final");
+      response.put("state", "final");
       response.put("scores", scores);
 
       for(Player p : room.getPlayers()) {
@@ -317,7 +328,8 @@ public class SocketHandler extends TextWebSocketHandler {
     remainingPlayers.remove(round.getPlayer2());
 
     Map<String, String> response = new HashMap<>();
-    response.put("action", "waiting");
+    response.put("state", "wait");
+    response.put("message", "waiting on snappers");
 
     round.setJudges(remainingPlayers);
 
