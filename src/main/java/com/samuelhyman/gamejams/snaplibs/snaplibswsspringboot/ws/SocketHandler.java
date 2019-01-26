@@ -73,7 +73,7 @@ public class SocketHandler extends TextWebSocketHandler {
     playerToRoom.put(newPlayer, room);
 
     Map<String, String> response = new HashMap<>();
-    response.put("state", "waiting");
+    response.put("state", "lobby");
 
     newPlayer.sendMessage(new TextMessage(gson.toJson(response)));
   }
