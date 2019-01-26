@@ -10,8 +10,8 @@ import lombok.experimental.Delegate;
 @Data
 public class Player {
   private String name;
-  @Delegate()
+  @Delegate
   private WebSocketSession socket;
   private int score;
-  private List<String> images;
+  private List<Snap> images;
 }
