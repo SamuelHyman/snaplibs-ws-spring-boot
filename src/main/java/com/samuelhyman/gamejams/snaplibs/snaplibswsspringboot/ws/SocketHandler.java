@@ -160,6 +160,12 @@ public class SocketHandler extends TextWebSocketHandler {
       room.getCurrentRound().getSnap2().setVotes(room.getCurrentRound().getSnap2().getVotes() + 1);
     }
 
+    Map<String, String> goBackToWaiting = new HashMap<>();
+    goBackToWaiting.put("state", "waiting");
+    goBackToWaiting.put("message", "waiting on other judge");
+
+    send(goBackToWaiting, player);
+
     if (room.getCurrentRound().getSnap1().getVotes() + room.getCurrentRound().getSnap2().getVotes() == room.getCurrentRound().getJudges().size()) {
       Map<String, String> response = new HashMap<>();
       response.put("state", "results");
