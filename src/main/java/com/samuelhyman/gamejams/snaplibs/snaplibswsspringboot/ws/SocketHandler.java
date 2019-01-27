@@ -234,7 +234,7 @@ public class SocketHandler extends TextWebSocketHandler {
       for (Player p : players) {
         Map<String, String> playerPacket = new HashMap<>(judgePacket);
         playerPacket.put("isJudge", String.valueOf(room.getCurrentRound().getJudges().contains(p)));
-        send(playerPacket, players);
+        send(playerPacket, p);
       }
     }
   }
@@ -287,6 +287,8 @@ public class SocketHandler extends TextWebSocketHandler {
     room.setCurrentRound(round);
 
     // Handle end game
+    room.setRemainingRounds(room.getRemainingRounds() - 1);
+
     if (room.getRemainingRounds() <= 0) {
       Map<String, String> scores = new HashMap<>();
 

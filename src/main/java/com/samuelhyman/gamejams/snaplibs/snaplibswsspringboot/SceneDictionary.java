@@ -16,7 +16,7 @@ public class SceneDictionary {
 
   @PostConstruct
   public void addSceneIds() {
-    scenes.add(Scene.builder().name("004.png").build());
+    //scenes.add(Scene.builder().name("004.png").build());
     scenes.add(Scene.builder().name("005.png").build());
     scenes.add(Scene.builder().name("006.png").build());
     scenes.add(Scene.builder().name("007.png").build());
