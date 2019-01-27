@@ -230,6 +230,7 @@ public class SocketHandler extends TextWebSocketHandler {
       judgePacket.put("image1", room.getCurrentRound().getSnap1().getData());
       judgePacket.put("player2", room.getCurrentRound().getPlayer2().getName());
       judgePacket.put("image2", room.getCurrentRound().getSnap2().getData());
+      judgePacket.put("rounds_remaining", String.valueOf(room.getRemainingRounds()));
 
       for (Player p : players) {
         Map<String, String> playerPacket = new HashMap<>(judgePacket);
@@ -358,6 +359,7 @@ public class SocketHandler extends TextWebSocketHandler {
     Map<String, String> response = new HashMap<>();
     response.put("state", "wait");
     response.put("message", "waiting on snappers");
+    response.put("rounds_remaining", String.valueOf(room.getRemainingRounds()));
     round.setJudges(remainingPlayers);
 
     send(response, remainingPlayers);
