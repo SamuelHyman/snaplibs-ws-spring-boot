@@ -29,7 +29,6 @@ public class SceneDictionary {
     scenes.add(Scene.builder().name("015.png").build());
     scenes.add(Scene.builder().name("016.png").build());
     scenes.add(Scene.builder().name("017.png").build());
-    scenes.add(Scene.builder().name("018.png").build());
     scenes.add(Scene.builder().name("019.png").build());
     scenes.add(Scene.builder().name("020.png").build());
     scenes.add(Scene.builder().name("021.png").build());
