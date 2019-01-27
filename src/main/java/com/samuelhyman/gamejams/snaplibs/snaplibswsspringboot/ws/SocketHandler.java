@@ -170,8 +170,12 @@ public class SocketHandler extends TextWebSocketHandler {
       Map<String, String> response = new HashMap<>();
       response.put("state", "results");
       response.put("scene", room.getCurrentRound().getScene().getName());
-      response.put("1", String.valueOf(room.getCurrentRound().getSnap1().getVotes()));
-      response.put("2", String.valueOf(room.getCurrentRound().getSnap2().getVotes()));
+      response.put("player1", room.getCurrentRound().getPlayer1().getName());
+      response.put("image1", room.getCurrentRound().getSnap1().getData());
+      response.put("score1", String.valueOf(room.getCurrentRound().getSnap1().getVotes()));
+      response.put("player2", room.getCurrentRound().getPlayer2().getName());
+      response.put("image2", room.getCurrentRound().getSnap2().getData());
+      response.put("score2", String.valueOf(room.getCurrentRound().getSnap2().getVotes()));
 
       send(response, room.getPlayers());
 
@@ -217,27 +221,21 @@ public class SocketHandler extends TextWebSocketHandler {
     // If we have two uploads, run judge logic
     if (room.getCurrentRound().getSnap1() != null && room.getCurrentRound().getSnap2() != null) {
       // Grab all players, remove image uploaders to get the list of judges
-      List<Player> judges = room.getCurrentRound().getJudges();
+      List<Player> players = room.getPlayers();
 
       Map<String, String> judgePacket = new HashMap<>();
       judgePacket.put("state", "judge");
       judgePacket.put("scene", room.getCurrentRound().getScene().getName());
-
       judgePacket.put("player1", room.getCurrentRound().getPlayer1().getName());
       judgePacket.put("image1", room.getCurrentRound().getSnap1().getData());
       judgePacket.put("player2", room.getCurrentRound().getPlayer2().getName());
       judgePacket.put("image2", room.getCurrentRound().getSnap2().getData());
 
-      send(judgePacket, judges);
-
-      Map<String, String> waitingPacket = new HashMap<>();
-      waitingPacket.put("state", "wait");
-      waitingPacket.put("message", "waiting on judges");
-
-      send(waitingPacket, Arrays.asList(
-          room.getCurrentRound().getPlayer1(),
-          room.getCurrentRound().getPlayer2()
-      ));
+      for (Player p : players) {
+        Map<String, String> playerPacket = new HashMap<>(judgePacket);
+        playerPacket.put("isJudge", String.valueOf(room.getCurrentRound().getJudges().contains(p)));
+        send(playerPacket, players);
+      }
     }
   }
 
