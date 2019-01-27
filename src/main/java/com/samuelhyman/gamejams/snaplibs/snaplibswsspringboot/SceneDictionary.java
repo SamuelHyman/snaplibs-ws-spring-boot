@@ -16,24 +16,24 @@ public class SceneDictionary {
 
   @PostConstruct
   public void addSceneIds() {
-    scenes.add(Scene.builder().name("004.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("005.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("006.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("007.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("008.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("009.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("010.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("011.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("013.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("014.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("015.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("016.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("017.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("018.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("019.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("020.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("021.png").promptA("").promptB("").build());
-    scenes.add(Scene.builder().name("024.png").promptA("").promptB("").build());
+    scenes.add(Scene.builder().name("004.png").build());
+    scenes.add(Scene.builder().name("005.png").build());
+    scenes.add(Scene.builder().name("006.png").build());
+    scenes.add(Scene.builder().name("007.png").build());
+    scenes.add(Scene.builder().name("008.png").build());
+    scenes.add(Scene.builder().name("009.png").build());
+    scenes.add(Scene.builder().name("010.png").build());
+    scenes.add(Scene.builder().name("011.png").build());
+    scenes.add(Scene.builder().name("013.png").build());
+    scenes.add(Scene.builder().name("014.png").build());
+    scenes.add(Scene.builder().name("015.png").build());
+    scenes.add(Scene.builder().name("016.png").build());
+    scenes.add(Scene.builder().name("017.png").build());
+    scenes.add(Scene.builder().name("018.png").build());
+    scenes.add(Scene.builder().name("019.png").build());
+    scenes.add(Scene.builder().name("020.png").build());
+    scenes.add(Scene.builder().name("021.png").build());
+    scenes.add(Scene.builder().name("024.png").build());
   }
 
   public List<Scene> getScenes() {

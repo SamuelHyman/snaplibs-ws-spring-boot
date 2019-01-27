@@ -9,6 +9,4 @@ import lombok.Data;
 @Builder
 public class Scene {
   private final String name;
-  private final String promptA;
-  private final String promptB;
 }
