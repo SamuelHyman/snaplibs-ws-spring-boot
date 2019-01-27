@@ -1,5 +1,6 @@
 package com.samuelhyman.gamejams.snaplibs.snaplibswsspringboot.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.web.socket.WebSocketSession;
@@ -13,5 +14,5 @@ public class Player {
   @Delegate
   private WebSocketSession socket;
   private int score;
-  private List<Snap> images;
+  private List<Snap> images = new ArrayList<>();
 }

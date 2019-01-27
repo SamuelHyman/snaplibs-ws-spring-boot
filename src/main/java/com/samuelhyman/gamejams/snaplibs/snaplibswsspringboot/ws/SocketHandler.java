@@ -172,6 +172,16 @@ public class SocketHandler extends TextWebSocketHandler {
 
   }
 
+  @Override
+  public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+    log.error("Caught exception in session " + session.getId(), exception);
+  }
+
+  @Override
+  public boolean supportsPartialMessages() {
+    return false;
+  }
+
   private void handleSnap(WebSocketSession session, Map<String,String> data) throws IOException {
     Player player = players.get(session);
     GameRoom room = playerToRoom.get(player);
@@ -192,7 +202,7 @@ public class SocketHandler extends TextWebSocketHandler {
 
     // Send snapper back to waiting
     Map<String, String> response = new HashMap<>();
-    response.put("state", "waiting");
+    response.put("state", "wait");
 
     player.sendMessage(new TextMessage(gson.toJson(response)));
 
@@ -212,7 +222,7 @@ public class SocketHandler extends TextWebSocketHandler {
       }
 
       Map<String, String> waitingPacket = new HashMap<>();
-      waitingPacket.put("state", "waiting");
+      waitingPacket.put("state", "wait");
       waitingPacket.put("message", "waiting on judges");
 
       room.getCurrentRound().getPlayer1().sendMessage(new TextMessage(gson.toJson(waitingPacket)));
@@ -336,6 +346,24 @@ public class SocketHandler extends TextWebSocketHandler {
     for (Player p : remainingPlayers) {
       p.sendMessage(new TextMessage(gson.toJson(response)));
     }
+
+    send(response, remainingPlayers);
+  }
+
+  private void send(Object object, List<Player> sessions) throws IOException {
+    String payload = gson.toJson(object);
+    TextMessage webSocketMessage = new TextMessage(payload);
+
+    for (Player s : sessions) {
+      s.sendMessage(webSocketMessage);
+    }
+  }
+
+  private void send(Object object, Player session) throws IOException {
+    String payload = gson.toJson(object);
+    TextMessage webSocketMessage = new TextMessage(payload);
+
+    session.sendMessage(webSocketMessage);
   }
 
   private void sendPlayerList(WebSocketSession session, Map<String, String> data) throws IOException {
